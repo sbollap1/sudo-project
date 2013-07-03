@@ -1,23 +1,18 @@
 package foo;
 
-import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
-import com.vaadin.data.Property.ValueChangeEvent;
-import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.IndexedContainer;
 import com.vaadin.server.VaadinRequest;
+import com.vaadin.shared.communication.PushMode;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -32,6 +27,7 @@ import com.vaadin.ui.VerticalLayout;
  */
 @SuppressWarnings("serial")
 @Theme("sudotheme")
+@Push(PushMode.AUTOMATIC)
 public class MyVaadinUI extends UI {
 
 	private Container container = new IndexedContainer();
@@ -44,8 +40,8 @@ public class MyVaadinUI extends UI {
 	private Label statusLabel = new Label();
 	private static Cube c1, c2, c3, c4, c5, c6, c7, c8, c9;
 	private static List<Cube> cubeList;
-
 	private Button populate = new Button("Populate Grid");
+	private Label solvedSuccessfullyLabel = new Label("Puzzle Result Status");
 
 	@Override
 	protected void init(VaadinRequest request) {
@@ -72,6 +68,7 @@ public class MyVaadinUI extends UI {
 		layout.addComponent(populate);
 		layout.addComponent(table);
 		layout.addComponent(solveButton);
+		layout.addComponent(solvedSuccessfullyLabel);
 
 		layout.setMargin(true);
 		layout.setSpacing(true);
@@ -79,80 +76,6 @@ public class MyVaadinUI extends UI {
 
 		// upload.setReceiver(uploadReceiver);
 		upload.addFinishedListener(uploadReceiver);
-
-		((IndexedContainer) container).addValueChangeListener(new ValueChangeListener() {
-
-			@Override
-			public void valueChange(ValueChangeEvent event) {
-
-				// This is all we can get w/o reflection
-				Property property = event.getProperty();
-				Integer value = (Integer) property.getValue();
-				System.out.print("\nValue: " + value);
-
-				Map<String, Object> returnData;
-
-				// Use reflection to get item and property ID
-				// got this code from
-				// https://github.com/ksnortum/TestContainerInsert/blob/master/README.md
-				try {
-					returnData = getIdAndProperty(property);
-				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
-					return;
-				}
-
-				Object itemId = returnData.get("itemId");
-				Integer propertyId = (Integer) returnData.get("propertyId");
-				System.out.println(", Item ID: " + itemId + ", Property ID: " + propertyId);
-
-				IndexedContainer container = (IndexedContainer) table.getContainerDataSource();
-				Item item = container.getItem(itemId);
-				Property<Integer> nameProperty = item.getItemProperty(propertyId);
-				// nameProperty.setValue((Integer) value);
-
-				// item.getItemProperty(propertyId).setValue(value);
-
-				table.setContainerDataSource(container);
-				table.setImmediate(true);
-				// try {
-				// Thread.sleep(2000);
-				// } catch (InterruptedException e) {
-				// // TODO Auto-generated catch block
-				// e.printStackTrace();
-				// }
-
-			}
-
-			private Map<String, Object> getIdAndProperty(Property eventProperty) throws NoSuchFieldException {
-
-				Map<String, Object> returnData = new HashMap<String, Object>();
-				Class<? extends Property> clazz = eventProperty.getClass();
-				final Field idField = clazz.getDeclaredField("itemId");
-				final Field propertyField = clazz.getDeclaredField("propertyId");
-
-				AccessController.doPrivileged(new PrivilegedAction<Object>() {
-					@Override
-					public Object run() {
-						idField.setAccessible(true);
-						propertyField.setAccessible(true);
-						return null;
-					}
-				});
-
-				try {
-					returnData.put("itemId", idField.get(eventProperty));
-					returnData.put("propertyId", propertyField.get(eventProperty));
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				}
-
-				return returnData;
-			}
-
-		});
 
 		/*
 		 * Click on the populate button
@@ -162,7 +85,8 @@ public class MyVaadinUI extends UI {
 			@Override
 			public void buttonClick(ClickEvent event) {
 
-				statusLabel.setCaption(uploadReceiver.getFileName());
+				// statusLabel.setCaption(uploadReceiver.getFileName());
+				solveButton.setEnabled(true);
 				Object matrix[][] = uploadReceiver.getMatrix();
 				int id = 0;
 				for (Object[] row : matrix) {
@@ -171,15 +95,11 @@ public class MyVaadinUI extends UI {
 					// Item newItem = container.getItem(container.addItem());
 					for (int i = 0; i < 9; i++) {
 						newItem.getItemProperty(i).setValue(row[i]);
+						table.setContainerDataSource(table.getContainerDataSource());
+						table.setImmediate(true);
 					}
 				}
 
-				// for (int i = 0; i < 9; i++) {
-				// for (int j = 0; j < 9; j++) {
-				// Item newItem = container.getItem(i);
-				// newItem.getItemProperty(j).setValue(matrix[i][j]);
-				// }
-				// }
 			}
 		});
 
@@ -209,118 +129,165 @@ public class MyVaadinUI extends UI {
 				cubeList.add(c7);
 				cubeList.add(c8);
 				cubeList.add(c9);
-				solveSudoko();
-			}
-
-			/*
-			 * Solver
-			 */
-			private boolean solveSudoko() {
-
-				Square cell = EmptySquarePresent();
-				if (!cell.isEmptySquare()) {
-					return true;
-				}
-
-				/*
-				 * Reason why its 1 to 9 is because you want to try numbers from
-				 * 1 to 9 in each cell
-				 */
-				for (int num = 1; num <= 9; num++) {
-
-					// check if no conflicts then
-					if (!AreThereConflicts(num, cell.getRowIndex(), cell.getColumnIndex())) {
-						uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = num;
-						Item row = container.getItem(cell.getRowIndex());
-						Property<Integer> col = row.getItemProperty(cell.getColumnIndex());
-						col.setValue(num);
-						table.setContainerDataSource(container);
-						table.setImmediate(true);
-						table.refreshRowCache();
-						table.requestRepaint();
-						table.setContainerDataSource(table.getContainerDataSource());
-
-						if (solveSudoko()) {
-							return true;
-						}
-						uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = 0; // unassign
-						Item itt = container.getItem(cell.getRowIndex());
-						Property<Integer> rrr = itt.getItemProperty(cell.getColumnIndex());
-						rrr.setValue(num);
-						table.setContainerDataSource(container);
-						table.setImmediate(true);
-						table.refreshRowCache();
-						table.requestRepaint();
-						table.setContainerDataSource(table.getContainerDataSource());
-
-					}
-
-				}
-				return false;
-
-			}
-
-			/*
-			 * Are there any conflicts ?
-			 */
-			private boolean AreThereConflicts(Integer number, Integer row, Integer col) {
-
-				Cube cc = findCube(row, col);
-				for (int jj = 0; jj < 9; jj++) {
-					if ((number == uploadReceiver.getMatrix()[row][jj] || uploadReceiver.getMatrix()[jj][col] == number)) {
-						return true;
-					}
-				}
-
-				for (int jj = cc.getRowfromIndex(); jj < cc.getRowtoIndex(); jj++) {
-					for (int kk = cc.getColfromIndex(); kk < cc.getColtoIndex(); kk++) {
-						if ((number == uploadReceiver.getMatrix()[jj][kk] || uploadReceiver.getMatrix()[jj][kk] == number)) {
-							return true;
-						}
-					}
-				}
-
-				for (Integer mm : cc.getLeftOutValues()) {
-					if (!cc.getLeftOutValues().contains(number)) {
-						return true;
-					}
-				}
-				return false;
-			}
-
-			/*
-			 * Find cube
-			 */
-
-			private Cube findCube(int i, int j) {
-				for (Cube ll : cubeList) {
-					if (i >= ll.getRowfromIndex() && i < ll.getRowtoIndex() && j >= ll.getColfromIndex() && j < ll.getColtoIndex()) {
-						return ll;
-					}
-				}
-				return null;
-
-			}
-
-			/*
-			 * Returns an empty square
-			 */
-			private Square EmptySquarePresent() {
-
-				Square sq = new Square();
-				for (int i = 0; i < 9; i++) {
-					for (int j = 0; j < 9; j++) {
-						if (uploadReceiver.getMatrix()[i][j] == 0) {
-							sq.setRowIndex(i);
-							sq.setColumnIndex(j);
-							sq.setEmptySquare(true);
-							return sq;
-						}
-					}
-				}
-				return sq;
+				solveButton.setEnabled(false);
+				new SolverThread().start();
 			}
 		});
+
+	}
+
+	/************************/
+	/* End of init function */
+	/************************/
+
+	/************************/
+	/* Solver Thread */
+	/************************/
+
+	class SolverThread extends Thread {
+
+		@Override
+		public void run() {
+			boolean flag = false;
+			// This function is a recursive function
+			try {
+				solvedSuccessfullyLabel.setValue("Solving the puzzle. . .");
+				flag = solveSudoko();
+				solvedSuccessfullyLabel.setValue("Solved the puzzle !!!" + flag);
+
+			} finally {
+				solvedSuccessfullyLabel.setValue("Finally, Solved the puzzle !!!" + flag);
+			}
+
+		}
+
+		class myRunnableClass implements Runnable {
+
+			private int number;
+			private Square celll;
+
+			public myRunnableClass(int num, Square cell) {
+				this.celll = cell;
+				this.number = num;
+			}
+
+			@Override
+			public void run() {
+				Item row = table.getItem(celll.getRowIndex());
+				Property<Integer> col = row.getItemProperty(celll.getColumnIndex());
+				col.setValue(number);
+				table.setContainerDataSource(table.getContainerDataSource());
+			}
+
+		}
+
+		/*****************************/
+		/* Solver Recursive function */
+		/*****************************/
+		private boolean solveSudoko() {
+
+			final Square cell = EmptySquarePresent();
+			if (!cell.isEmptySquare()) {
+				return true;
+			}
+
+			/*
+			 * If there is empty square then only you will fall here; Reason why
+			 * its 1 to 9 is because you want to try numbers from 1 to 9 in each
+			 * cell
+			 */
+			for (int num = 1; num <= 9; num++) {
+
+				// check if no conflicts then
+				if (!AreThereConflicts(num, cell.getRowIndex(), cell.getColumnIndex())) {
+					// assign a number to the cell if there are no conflicts
+					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = num;
+					// System.out.println("Empty Cell is (" + cell.getRowIndex()
+					// + "," + cell.getColumnIndex() + "): " + num);
+					solvedSuccessfullyLabel.setValue("Empty Cell is (" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
+
+					// Item row = table.getItem(cell.getRowIndex());
+					// Property<Integer> col =
+					// row.getItemProperty(cell.getColumnIndex());
+					// col.setValue(num);
+
+					// Init done, update the UI after doing locking
+					access(new myRunnableClass(num, cell));
+
+					if (solveSudoko()) {
+						solvedSuccessfullyLabel.setValue("Solved the puzzle successfully !!!");
+						return true;
+					}
+					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = 0; // unassign
+					// System.out.println("Backtracking...");
+					solvedSuccessfullyLabel.setValue("Back-tracking to cell. . ." + "(" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
+
+					// Item itt = table.getItem(cell.getRowIndex());
+					// Property<Integer> rrr =
+					// itt.getItemProperty(cell.getColumnIndex());
+					// rrr.setValue(num);
+					access(new myRunnableClass(num, cell));
+
+				}
+
+			}
+			return false;
+
+		}
+
+		/**************************/
+		/* Are there any conflicts */
+		/**************************/
+
+		private boolean AreThereConflicts(Integer number, Integer row, Integer col) {
+
+			Cube cc = findCube(row, col);
+			for (int jj = 0; jj < 9; jj++) {
+				if ((number == uploadReceiver.getMatrix()[row][jj] || uploadReceiver.getMatrix()[jj][col] == number)) {
+					return true;
+				}
+			}
+
+			for (int jj = cc.getRowfromIndex(); jj < cc.getRowtoIndex(); jj++) {
+				for (int kk = cc.getColfromIndex(); kk < cc.getColtoIndex(); kk++) {
+					if ((number == uploadReceiver.getMatrix()[jj][kk] || uploadReceiver.getMatrix()[jj][kk] == number)) {
+						return true;
+					}
+				}
+			}
+
+			for (Integer mm : cc.getLeftOutValues()) {
+				if (!cc.getLeftOutValues().contains(number)) {
+					return true;
+				}
+			}
+			return false;
+
+		}
+
+		private Cube findCube(Integer i, Integer j) {
+			for (Cube ll : cubeList) {
+				if (i >= ll.getRowfromIndex() && i < ll.getRowtoIndex() && j >= ll.getColfromIndex() && j < ll.getColtoIndex()) {
+					return ll;
+				}
+			}
+			return null;
+		}
+
+		private Square EmptySquarePresent() {
+			Square sq = new Square();
+			for (int i = 0; i < 9; i++) {
+				for (int j = 0; j < 9; j++) {
+					if (uploadReceiver.getMatrix()[i][j] == 0) {
+						sq.setRowIndex(i);
+						sq.setColumnIndex(j);
+						sq.setEmptySquare(true);
+						return sq;
+					}
+				}
+			}
+			return sq;
+		}
 
 	}
 
@@ -357,9 +324,9 @@ public class MyVaadinUI extends UI {
 
 	}
 
-	/*
-	 * Creates a Cube
-	 */
+	/*************************/
+	/* Creates a Cube */
+	/************************/
 	private static Cube createCube(CubeTypes ctype) {
 
 		int rowfromIndex = 0, rowtoIndex = 0;

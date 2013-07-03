@@ -28,6 +28,10 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
+		<repository>
+			<id>ICEFaces</id>
+			<url>http://anonsvn.icefaces.org/repo/maven2/snapshots/</url>
+		</repository>
 	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
@@ -42,8 +46,7 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<dependencies>
-	
-	
+
 		<dependency>
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-server</artifactId>
@@ -76,6 +79,23 @@
 			<artifactId>collectioncontainer</artifactId>
 			<version>0.9.3</version>
 		</dependency>
+		<!-- vaadin server push addon: https://vaadin.com/wiki/-/wiki/Main/Enabling%20server%20push -->
+		<dependency>
+			<groupId>com.vaadin</groupId>
+			<artifactId>vaadin-push</artifactId>
+			<version>${vaadin.version}</version>
+		</dependency>
+		<!-- vaadin icepush add-ons -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.vaadin.addons</groupId> -->
+		<!-- <artifactId>icepush</artifactId> -->
+		<!-- <version>0.5.5</version> -->
+		<!-- </dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.icepush</groupId> -->
+		<!-- <artifactId>icepush</artifactId> -->
+		<!-- <version>2.0-Beta1</version> -->
+		<!-- </dependency> -->
 	</dependencies>
 
 	<build>
@@ -144,7 +164,8 @@
 		</plugins>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
