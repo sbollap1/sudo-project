@@ -42,6 +42,7 @@ public class MyVaadinUI extends UI {
 	private static List<Cube> cubeList;
 	private Button populate = new Button("Populate Grid");
 	private Label solvedSuccessfullyLabel = new Label("Puzzle Result Status");
+	private Thread solverThread;
 
 	@Override
 	protected void init(VaadinRequest request) {
@@ -130,7 +131,10 @@ public class MyVaadinUI extends UI {
 				cubeList.add(c8);
 				cubeList.add(c9);
 				solveButton.setEnabled(false);
-				new SolverThread().start();
+				solverThread = new SolverThread();
+				solverThread.start();
+				System.out.println("Back from after spawning a thread. . .");
+
 			}
 		});
 
@@ -153,12 +157,14 @@ public class MyVaadinUI extends UI {
 			try {
 				solvedSuccessfullyLabel.setValue("Solving the puzzle. . .");
 				flag = solveSudoko();
-				solvedSuccessfullyLabel.setValue("Solved the puzzle !!!" + flag);
-
 			} finally {
-				solvedSuccessfullyLabel.setValue("Finally, Solved the puzzle !!!" + flag);
+				if (flag && !solverThread.isAlive()) {
+					solvedSuccessfullyLabel.setValue("Solved the puzzle !!! Hooray !!");
+					return;
+				}
 			}
 
+			return;
 		}
 
 		/*
@@ -180,6 +186,7 @@ public class MyVaadinUI extends UI {
 				Property<Integer> col = row.getItemProperty(celll.getColumnIndex());
 				col.setValue(number);
 				table.setContainerDataSource(table.getContainerDataSource());
+				return;
 			}
 
 		}
@@ -205,8 +212,6 @@ public class MyVaadinUI extends UI {
 				if (!AreThereConflicts(num, cell.getRowIndex(), cell.getColumnIndex())) {
 					// assign a number to the cell if there are no conflicts
 					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = num;
-					// System.out.println("Empty Cell is (" + cell.getRowIndex()
-					// + "," + cell.getColumnIndex() + "): " + num);
 					solvedSuccessfullyLabel.setValue("Empty Cell is (" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
 
 					// Item row = table.getItem(cell.getRowIndex());
@@ -221,6 +226,7 @@ public class MyVaadinUI extends UI {
 						solvedSuccessfullyLabel.setValue("Solved the puzzle successfully !!!");
 						return true;
 					}
+
 					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = 0; // unassign
 					// System.out.println("Backtracking...");
 					solvedSuccessfullyLabel.setValue("Back-tracking to cell. . ." + "(" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
@@ -229,7 +235,7 @@ public class MyVaadinUI extends UI {
 					// Property<Integer> rrr =
 					// itt.getItemProperty(cell.getColumnIndex());
 					// rrr.setValue(num);
-					access(new myRunnableClass(num, cell));
+					access(new myRunnableClass(0, cell));
 
 				}
 
