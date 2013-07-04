@@ -161,6 +161,9 @@ public class MyVaadinUI extends UI {
 
 		}
 
+		/*
+		 * Adding a runnable class
+		 */
 		class myRunnableClass implements Runnable {
 
 			private int number;
