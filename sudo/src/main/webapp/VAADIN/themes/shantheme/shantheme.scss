@@ -1,0 +1,31 @@
+@import "../runo/runo.scss";
+//@import "../reindeer/reindeer.scss";
+@import "../reindeer/styles.css";
+
+@mixin shantheme {
+
+  // @include reindeer;
+    @include runo;
+  
+   
+   .v-table-checkerboard .v-table-cell-content {
+    text-align: center;
+    vertical-align: middle;
+    padding-top: 12px;
+    width: 20px;
+    height: 20px;
+}
+ 
+ /* 
+   .v-app {
+       background-color: grey;
+   }
+   
+   
+    .v-label {
+         font-size: 12px;
+         color: blue;
+     }
+     
+     */
+}

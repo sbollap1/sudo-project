@@ -1,0 +1,60 @@
+/* Import the reindeer theme.*/
+/* This only allows us to use the mixins defined in it and does not add any styles by itself. */
+@import "../reindeer/reindeer.scss";
+
+/* This contains all of your theme.*/
+/* If somebody wants to extend the theme she will include this mixin. */
+@mixin sudotheme {
+	/* Include all the styles from the reindeer theme */ 
+
+
+@include reindeer;
+
+/* Insert your theme rules here */ 
+	$color: blue;
+	$cellcolor: brown; 
+	
+	
+.mystyle {
+    font-style : italic;
+	color: $color;
+	font-size: large;
+}
+
+
+.v-table td {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #000;
+}
+
+.v-table td:nth-of-type(3n) {    
+    border-right: 3px solid red !important;
+}
+
+.v-table tr:nth-of-type(3n) td {    
+    border-bottom: 3px solid red !important;
+}
+
+.v-table {
+	    border: 3px solid red !important;
+	    text-align: center;
+	    font-size:120%;
+	    background: white;
+	    
+}
+
+.v-table-mymodel .v-scrollable {
+    overflow: hidden;
+}
+
+.no-stripes  .v-table-row,.no-stripes  .v-table-row-odd, .v-table-cell-content 
+	{
+	background: white;
+	color: $cellcolor;
+	text-align: center;
+	font-size:150%;
+    }
+    
+
+}
