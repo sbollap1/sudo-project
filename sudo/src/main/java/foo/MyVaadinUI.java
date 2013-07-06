@@ -51,12 +51,16 @@ public class MyVaadinUI extends UI {
 		upload.setButtonCaption("Upload Sudoko file");
 
 		title.addStyleName("mystyle");
-		table.addStyleName("checkerboard");
+		table.addStyleName("no-stripes");
+		table.addStyleName("mymodel");
 
 		createContainerData();
-		table.setPageLength(table.size());
+		table.setPageLength(0);
+		table.setHeight(null);
 		table.setContainerDataSource(container);
 		table.setImmediate(true);
+		table.setSelectable(false);
+		table.setColumnHeaderMode(Table.COLUMN_HEADER_MODE_HIDDEN);
 
 		// Item item = container.getItem(9);
 		// Property<Integer> nameProperty = item.getItemProperty(9);
@@ -157,14 +161,17 @@ public class MyVaadinUI extends UI {
 			try {
 				solvedSuccessfullyLabel.setValue("Solving the puzzle. . .");
 				flag = solveSudoko();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			} finally {
 				if (flag && !solverThread.isAlive()) {
 					solvedSuccessfullyLabel.setValue("Solved the puzzle !!! Hooray !!");
-					return;
+					// return;
 				}
 			}
 
-			return;
+			// return;
 		}
 
 		/*
@@ -186,19 +193,21 @@ public class MyVaadinUI extends UI {
 				Property<Integer> col = row.getItemProperty(celll.getColumnIndex());
 				col.setValue(number);
 				table.setContainerDataSource(table.getContainerDataSource());
-				return;
 			}
 
 		}
 
 		/*****************************/
 		/* Solver Recursive function */
-		/*****************************/
-		private boolean solveSudoko() {
+		/**
+		 * @throws InterruptedException
+		 ***************************/
+		private boolean solveSudoko() throws InterruptedException {
 
 			final Square cell = EmptySquarePresent();
 			if (!cell.isEmptySquare()) {
 				return true;
+
 			}
 
 			/*
@@ -221,6 +230,7 @@ public class MyVaadinUI extends UI {
 
 					// Init done, update the UI after doing locking
 					access(new myRunnableClass(num, cell));
+					solverThread.sleep(1000);
 
 					if (solveSudoko()) {
 						solvedSuccessfullyLabel.setValue("Solved the puzzle successfully !!!");
@@ -230,7 +240,7 @@ public class MyVaadinUI extends UI {
 					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = 0; // unassign
 					// System.out.println("Backtracking...");
 					solvedSuccessfullyLabel.setValue("Back-tracking to cell. . ." + "(" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
-
+					solverThread.sleep(1000);
 					// Item itt = table.getItem(cell.getRowIndex());
 					// Property<Integer> rrr =
 					// itt.getItemProperty(cell.getColumnIndex());
