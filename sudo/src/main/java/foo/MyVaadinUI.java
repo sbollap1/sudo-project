@@ -3,6 +3,7 @@ package foo;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import com.vaadin.annotations.Push;
@@ -18,6 +19,7 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.Table.CellStyleGenerator;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.Upload;
 import com.vaadin.ui.VerticalLayout;
@@ -167,11 +169,9 @@ public class MyVaadinUI extends UI {
 			} finally {
 				if (flag && !solverThread.isAlive()) {
 					solvedSuccessfullyLabel.setValue("Solved the puzzle !!! Hooray !!");
-					// return;
+					solveButton.setEnabled(true);
 				}
 			}
-
-			// return;
 		}
 
 		/*
@@ -189,9 +189,21 @@ public class MyVaadinUI extends UI {
 
 			@Override
 			public void run() {
-				Item row = table.getItem(celll.getRowIndex());
-				Property<Integer> col = row.getItemProperty(celll.getColumnIndex());
+				final Item row = table.getItem(celll.getRowIndex());
+				final Property<Integer> col = row.getItemProperty(celll.getColumnIndex());
 				col.setValue(number);
+				table.setCellStyleGenerator(new CellStyleGenerator() {
+
+					@Override
+					public String getStyle(Table source, Object itemId, Object propertyId) {
+						// TODO Auto-generated method stub
+						if (itemId == celll.getRowIndex() && propertyId == celll.getColumnIndex()) {
+							return "mystylebhai";
+						}
+						return null;
+
+					}
+				});
 				table.setContainerDataSource(table.getContainerDataSource());
 			}
 
@@ -230,17 +242,18 @@ public class MyVaadinUI extends UI {
 
 					// Init done, update the UI after doing locking
 					access(new myRunnableClass(num, cell));
-					solverThread.sleep(1000);
+					solverThread.sleep(500);
 
 					if (solveSudoko()) {
-						solvedSuccessfullyLabel.setValue("Solved the puzzle successfully !!!");
+						Random randomGenerator = new Random();
+						solvedSuccessfullyLabel.setValue("Solved the puzzle successfully !!!" + randomGenerator.nextInt(100));
 						return true;
 					}
 
 					uploadReceiver.getMatrix()[cell.getRowIndex()][cell.getColumnIndex()] = 0; // unassign
 					// System.out.println("Backtracking...");
 					solvedSuccessfullyLabel.setValue("Back-tracking to cell. . ." + "(" + cell.getRowIndex() + "," + cell.getColumnIndex() + "): " + num);
-					solverThread.sleep(1000);
+					solverThread.sleep(500);
 					// Item itt = table.getItem(cell.getRowIndex());
 					// Property<Integer> rrr =
 					// itt.getItemProperty(cell.getColumnIndex());
